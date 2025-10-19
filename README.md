@@ -33,35 +33,7 @@ This tutorial will teach you to build an autonomous OSINT agent that can:
 
 ## Architecture Overview {#architecture}
 
-### Core Components
-
-```
-┌─────────────────────────────────────────────┐
-│           OSINT Agent System                │
-├─────────────────────────────────────────────┤
-│                                             │
-│  ┌────────────┐      ┌──────────────┐     │
-│  │  Planner   │─────→│   Executor    │     │
-│  │ (Strategy) │      │ (Actions)     │     │
-│  └────────────┘      └──────────────┘     │
-│         │                    │              │
-│         ↓                    ↓              │
-│  ┌────────────┐      ┌──────────────┐     │
-│  │   Memory   │←────→│   Analyzer    │     │
-│  │  (State)   │      │ (Synthesis)   │     │
-│  └────────────┘      └──────────────┘     │
-│         │                    │              │
-│         └────────┬───────────┘              │
-│                  ↓                          │
-│          ┌──────────────┐                  │
-│          │   Reporter    │                  │
-│          │  (Output)     │                  │
-│          └──────────────┘                  │
-│                                             │
-└─────────────────────────────────────────────┘
-```
-
-### Data Flow
+### Core Components and Data Flow
 
 1. **User Input** → Objective & constraints
 2. **Planner** → Creates investigation strategy
