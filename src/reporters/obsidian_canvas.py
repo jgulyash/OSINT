@@ -1,15 +1,12 @@
 """
 Obsidian Canvas Generator for OSINT Investigations
+Updated to match TRM Labs Assignment template format
 
-Creates visual mind maps and knowledge graphs from OSINT data
-that can be opened directly in Obsidian.
-
-Canvas Types:
-- Entity Relationship Maps
-- Investigation Timelines
-- Network Graphs
-- Finding Hierarchies
-- Threat Landscapes
+Creates visual mind maps using hub-and-spoke pattern with:
+- Central subject node
+- Radial category groups
+- Directional labeled edges
+- Consistent color scheme
 """
 
 import json
@@ -17,97 +14,90 @@ import hashlib
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
-import colorsys
 
 
 class ObsidianCanvasGenerator:
     """
-    Generate Obsidian Canvas files for visualizing OSINT investigations
+    Generate Obsidian Canvas files matching TRM Labs investigation format
     """
 
-    # Canvas node types
+    # Node types
     NODE_TYPE_TEXT = "text"
-    NODE_TYPE_FILE = "file"
-    NODE_TYPE_LINK = "link"
     NODE_TYPE_GROUP = "group"
 
-    # Default dimensions
-    DEFAULT_NODE_WIDTH = 250
-    DEFAULT_NODE_HEIGHT = 150
-    DEFAULT_GROUP_WIDTH = 400
-    DEFAULT_GROUP_HEIGHT = 300
+    # Standard dimensions (matching template)
+    SUBJECT_WIDTH = 250
+    SUBJECT_HEIGHT = 60
+    GROUP_WIDTH = 300
+    GROUP_MIN_HEIGHT = 300
+    ITEM_WIDTH = 250
+    ITEM_HEIGHT = 60
+    ITEM_SPACING = 12
 
-    # Colors for different entity types
-    ENTITY_COLORS = {
-        'domain': '#4CAF50',      # Green
-        'ip': '#2196F3',          # Blue
-        'person': '#FF9800',      # Orange
-        'organization': '#9C27B0', # Purple
-        'email': '#F44336',       # Red
-        'url': '#00BCD4',         # Cyan
-        'phone': '#FFEB3B',       # Yellow
-        'location': '#795548',    # Brown
-        'username': '#E91E63',    # Pink
-        'finding': '#607D8B',     # Blue Grey
-        'risk': '#D32F2F',        # Dark Red
-        'event': '#1976D2',       # Dark Blue
-        'tool': '#388E3C',        # Dark Green
-        'default': '#757575'      # Grey
+    # Color scheme (matching template)
+    COLORS = {
+        'subject': "1",
+        'emails': "2",
+        'social_media': "3",
+        'phone_numbers': "4",
+        'bio_data': "5",
+        'usernames': "6",
+        'contacts': "#f60465",
+        'leads': "#9a4c88",
+        'breach_data': "#6e1111",
+        'relatives': "#d905f5",
+        'profession': "#887e11",
+        'vehicles': "2",
+        'accomplices': "#b57878",
+        'digital_footprint': "#558212",
+        'locations': "#090fc3",
+        'images': "#77500e",
+        'timeline': "#1976D2",
+        'findings': "#607D8B",
+        'entities': "#4CAF50",
+        'risks': "#F44336",
+        'tools': "#388E3C"
     }
 
-    # Finding confidence colors
-    CONFIDENCE_COLORS = {
-        'very_high': '#1B5E20',   # Dark Green
-        'high': '#43A047',        # Green
-        'medium': '#FFA726',      # Orange
-        'low': '#EF5350',         # Light Red
-        'very_low': '#C62828',    # Dark Red
-        'unknown': '#9E9E9E'      # Grey
+    # Phone number emoji icons (matching template)
+    PHONE_ICONS = {
+        'mobile': '📱',
+        'landline': '☎️',
+        'office': '📞',
+        'satellite': '🛰️',
+        'business': '💼',
+        'messaging': '💬',
+        'burner': '🔥',
+        'encrypted': '📱🔒'
     }
 
     def __init__(self, output_dir: str = "data/reports/obsidian"):
-        """
-        Initialize canvas generator
-
-        Args:
-            output_dir: Directory for canvas files
-        """
+        """Initialize canvas generator"""
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Canvas state
         self.nodes = []
         self.edges = []
-        self.next_x = 0
-        self.next_y = 0
+        self.node_id_counter = 0
 
-    def generate_id(self, text: str) -> str:
+    def generate_id(self, prefix: str = "") -> str:
         """Generate unique ID for canvas element"""
-        return hashlib.md5(f"{text}{datetime.now().isoformat()}".encode()).hexdigest()[:16]
+        self.node_id_counter += 1
+        base = f"{prefix}{datetime.now().timestamp()}{self.node_id_counter}"
+        return hashlib.md5(base.encode()).hexdigest()[:16]
 
     def create_text_node(
         self,
         text: str,
         x: int,
         y: int,
-        width: int = DEFAULT_NODE_WIDTH,
-        height: int = DEFAULT_NODE_HEIGHT,
+        width: int = ITEM_WIDTH,
+        height: int = ITEM_HEIGHT,
         color: Optional[str] = None
     ) -> Dict:
-        """
-        Create a text node
-
-        Args:
-            text: Node text content
-            x, y: Position
-            width, height: Dimensions
-            color: Background color
-
-        Returns:
-            Node dictionary
-        """
+        """Create a text node"""
         node = {
-            "id": self.generate_id(text),
+            "id": self.generate_id("text"),
             "type": self.NODE_TYPE_TEXT,
             "text": text,
             "x": x,
@@ -126,19 +116,19 @@ class ObsidianCanvasGenerator:
         label: str,
         x: int,
         y: int,
-        width: int = DEFAULT_GROUP_WIDTH,
-        height: int = DEFAULT_GROUP_HEIGHT,
+        width: int = GROUP_WIDTH,
+        height: int = GROUP_MIN_HEIGHT,
         color: Optional[str] = None
     ) -> Dict:
-        """Create a group node to contain other nodes"""
+        """Create a group node"""
         node = {
-            "id": self.generate_id(label),
+            "id": self.generate_id("group"),
             "type": self.NODE_TYPE_GROUP,
-            "label": label,
             "x": x,
             "y": y,
             "width": width,
-            "height": height
+            "height": height,
+            "label": label
         }
 
         if color:
@@ -150,25 +140,28 @@ class ObsidianCanvasGenerator:
         self,
         from_node_id: str,
         to_node_id: str,
+        from_side: str = "right",
+        to_side: str = "left",
         label: Optional[str] = None,
         color: Optional[str] = None
     ) -> Dict:
         """
-        Create an edge between nodes
+        Create a directional edge between nodes
 
         Args:
             from_node_id: Source node ID
             to_node_id: Target node ID
+            from_side: Side to connect from (left, right, top, bottom)
+            to_side: Side to connect to (left, right, top, bottom)
             label: Optional edge label
             color: Optional edge color
-
-        Returns:
-            Edge dictionary
         """
         edge = {
-            "id": self.generate_id(f"{from_node_id}-{to_node_id}"),
+            "id": self.generate_id("edge"),
             "fromNode": from_node_id,
-            "toNode": to_node_id
+            "fromSide": from_side,
+            "toNode": to_node_id,
+            "toSide": to_side
         }
 
         if label:
@@ -179,72 +172,59 @@ class ObsidianCanvasGenerator:
 
         return edge
 
-    def calculate_layout_grid(self, num_items: int, cols: int = 4) -> List[Tuple[int, int]]:
-        """
-        Calculate grid layout positions
-
-        Args:
-            num_items: Number of items to layout
-            cols: Number of columns
-
-        Returns:
-            List of (x, y) positions
-        """
-        positions = []
-        spacing_x = self.DEFAULT_NODE_WIDTH + 50
-        spacing_y = self.DEFAULT_NODE_HEIGHT + 50
-
-        for i in range(num_items):
-            row = i // cols
-            col = i % cols
-            x = col * spacing_x
-            y = row * spacing_y
-            positions.append((x, y))
-
-        return positions
-
-    def calculate_radial_layout(
+    def calculate_group_positions_radial(
         self,
-        num_items: int,
-        center_x: int = 400,
-        center_y: int = 300,
-        radius: int = 300
-    ) -> List[Tuple[int, int]]:
+        num_groups: int,
+        center_x: int = 0,
+        center_y: int = 0,
+        radius: int = 600
+    ) -> List[Tuple[int, int, str, str]]:
         """
-        Calculate radial (circular) layout positions
-
-        Args:
-            num_items: Number of items to layout
-            center_x, center_y: Center point
-            radius: Radius of circle
+        Calculate radial positions for groups around center
 
         Returns:
-            List of (x, y) positions
+            List of (x, y, from_side, to_side) tuples
         """
         import math
 
         positions = []
-        angle_step = (2 * math.pi) / max(num_items, 1)
+        angle_step = (2 * math.pi) / num_groups
 
-        for i in range(num_items):
-            angle = i * angle_step
+        for i in range(num_groups):
+            angle = i * angle_step - (math.pi / 2)  # Start from top
             x = int(center_x + radius * math.cos(angle))
             y = int(center_y + radius * math.sin(angle))
-            positions.append((x, y))
+
+            # Determine edge sides based on position relative to center
+            if x < center_x - 100:
+                from_side = "left"
+                to_side = "right"
+            elif x > center_x + 100:
+                from_side = "right"
+                to_side = "left"
+            elif y < center_y:
+                from_side = "top"
+                to_side = "bottom"
+            else:
+                from_side = "bottom"
+                to_side = "top"
+
+            positions.append((x, y, from_side, to_side))
 
         return positions
 
-    def generate_entity_map(
+    def generate_person_investigation_canvas(
         self,
         investigation_data: Dict,
-        layout: str = 'radial'
+        subject_name: str = "Subject"
     ) -> str:
         """
-        Generate entity relationship map
+        Generate person-of-interest investigation canvas
+        Matches TRM Labs template format
 
         Args:
             investigation_data: Investigation data
-            layout: Layout type ('grid' or 'radial')
+            subject_name: Name of subject being investigated
 
         Returns:
             Canvas JSON string
@@ -252,100 +232,120 @@ class ObsidianCanvasGenerator:
         self.nodes = []
         self.edges = []
 
-        # Extract entities and relationships
+        # Extract data
         processed_data = investigation_data.get('processed_data', {})
+        analysis = investigation_data.get('analysis', {})
         entities = processed_data.get('entities', [])
-        relationships = processed_data.get('relationships', [])
 
-        if not entities:
-            # Create a single node indicating no entities
-            node = self.create_text_node(
-                "No entities found in investigation",
-                100, 100,
-                color="#BDBDBD"
-            )
-            self.nodes.append(node)
-        else:
-            # Create central investigation node
-            investigation_id = investigation_data.get('investigation_id', 'Investigation')
-            objective = investigation_data.get('objective', '')[:100]
+        # Create central subject node
+        subject_x, subject_y = -85, 126
+        subject_node = self.create_text_node(
+            subject_name or "Seed Data",
+            subject_x,
+            subject_y,
+            width=self.SUBJECT_WIDTH,
+            height=self.SUBJECT_HEIGHT,
+            color=self.COLORS['subject']
+        )
+        self.nodes.append(subject_node)
 
-            central_node = self.create_text_node(
-                f"**Investigation**\n\n{investigation_id}\n\n{objective}",
-                0, 0,
-                width=300,
-                height=200,
-                color="#1976D2"
-            )
-            self.nodes.append(central_node)
+        # Create subject group
+        subject_group = self.create_group_node(
+            "Subject",
+            subject_x - 15,
+            subject_y - 21,
+            width=self.SUBJECT_WIDTH + 30,
+            height=self.SUBJECT_HEIGHT + 47,
+            color=self.COLORS['subject']
+        )
+        self.nodes.append(subject_group)
 
-            # Layout entity nodes
-            if layout == 'radial':
-                positions = self.calculate_radial_layout(len(entities), center_x=0, center_y=0, radius=500)
-            else:
-                positions = self.calculate_layout_grid(len(entities))
-
-            # Create entity nodes
-            entity_id_map = {}
-
-            for i, entity in enumerate(entities):
-                if not isinstance(entity, dict):
-                    continue
-
+        # Organize entities by type
+        entities_by_type = {}
+        for entity in entities:
+            if isinstance(entity, dict):
                 entity_type = entity.get('type', 'unknown')
-                entity_name = entity.get('name', 'Unknown')
-                attributes = entity.get('attributes', {})
+                if entity_type not in entities_by_type:
+                    entities_by_type[entity_type] = []
+                entities_by_type[entity_type].append(entity)
 
-                # Build entity text
-                entity_text = f"**{entity_type.upper()}**\n\n{entity_name}"
-                if attributes:
-                    entity_text += f"\n\n"
-                    for key, value in list(attributes.items())[:3]:
-                        entity_text += f"• {key}: {value}\n"
+        # Define category configurations with positions (matching template layout)
+        categories = [
+            # Left side
+            ('social_media', 'Social Media', -640, -1240, 'left', 'right'),
+            ('usernames', 'Usernames', -1060, -600, 'left', 'right'),
+            ('phone_numbers', 'Phone Numbers', -1160, -213, 'left', 'right'),
+            ('emails', 'Emails', -660, 540, 'left', 'right'),
+            ('leads', 'Leads to Pursue', -1089, 600, 'left', 'top'),
 
-                # Get position
-                x, y = positions[i]
+            # Top
+            ('bio_data', 'Bio Data', -220, -1180, 'top', 'bottom'),
+            ('breach_data', 'Breach Data', 249, -929, 'top', 'left'),
+            ('profession', 'Profession', 640, -1037, 'top', 'bottom'),
 
-                # Create node
-                color = self.ENTITY_COLORS.get(entity_type, self.ENTITY_COLORS['default'])
-                node = self.create_text_node(
-                    entity_text,
-                    x, y,
-                    width=220,
-                    height=180,
-                    color=color
+            # Right side
+            ('vehicles', 'Vehicles', 778, -540, 'top', 'left'),
+            ('images', 'Images', 405, -144, 'right', 'left'),
+            ('accomplices', 'Accomplices', 477, 387, 'right', 'left'),
+            ('digital_footprint', 'Digital Footprint', 1140, 281, 'right', 'left'),
+            ('locations', 'Locations', 820, -27, 'right', 'left'),
+            ('contacts', 'Contacts', 260, 800, 'bottom', 'top'),
+
+            # Bottom
+            ('relatives', 'Relatives', -220, 711, 'bottom', 'top'),
+        ]
+
+        # Create category groups
+        for cat_key, cat_label, x, y, from_side, to_side in categories:
+            # Get items for this category
+            items = self._get_category_items(cat_key, entities_by_type, analysis, investigation_data)
+
+            if items:
+                # Calculate group height based on items
+                group_height = max(
+                    self.GROUP_MIN_HEIGHT,
+                    20 + (len(items) * (self.ITEM_HEIGHT + self.ITEM_SPACING)) + 20
                 )
-                self.nodes.append(node)
 
-                entity_id_map[entity_name] = node['id']
+                # Create group
+                group_node = self.create_group_node(
+                    cat_label,
+                    x,
+                    y,
+                    width=self.GROUP_WIDTH,
+                    height=group_height,
+                    color=self.COLORS.get(cat_key, "2")
+                )
+                self.nodes.append(group_node)
 
-                # Connect to central node
+                # Create items within group
+                item_x = x + 15
+                item_y = y + 20
+
+                for i, item in enumerate(items[:10]):  # Limit to 10 items per category
+                    item_node = self.create_text_node(
+                        item,
+                        item_x,
+                        item_y,
+                        width=self.ITEM_WIDTH,
+                        height=self.ITEM_HEIGHT if '\n' not in item else self.ITEM_HEIGHT + 20,
+                        color=self.COLORS.get(cat_key, "2")
+                    )
+                    self.nodes.append(item_node)
+
+                    item_y += self.ITEM_HEIGHT + self.ITEM_SPACING
+
+                # Create edge from subject to group
                 edge = self.create_edge(
-                    central_node['id'],
-                    node['id'],
-                    label=entity_type
+                    subject_group['id'],
+                    group_node['id'],
+                    from_side=from_side,
+                    to_side=to_side,
+                    label=cat_label,
+                    color=self.COLORS.get(cat_key, "2")
                 )
                 self.edges.append(edge)
 
-            # Add relationship edges
-            for relationship in relationships:
-                if not isinstance(relationship, dict):
-                    continue
-
-                source = relationship.get('source', '')
-                target = relationship.get('target', '')
-                rel_type = relationship.get('type', 'related_to')
-
-                if source in entity_id_map and target in entity_id_map:
-                    edge = self.create_edge(
-                        entity_id_map[source],
-                        entity_id_map[target],
-                        label=rel_type,
-                        color="#FF6F00"
-                    )
-                    self.edges.append(edge)
-
-        # Generate canvas JSON
         canvas = {
             "nodes": self.nodes,
             "edges": self.edges
@@ -353,9 +353,104 @@ class ObsidianCanvasGenerator:
 
         return json.dumps(canvas, indent=2)
 
-    def generate_timeline_canvas(self, investigation_data: Dict) -> str:
+    def _get_category_items(
+        self,
+        category: str,
+        entities_by_type: Dict,
+        analysis: Dict,
+        investigation_data: Dict
+    ) -> List[str]:
+        """Get items for a specific category"""
+        items = []
+
+        if category == 'social_media':
+            platforms = ['Twitter', 'Instagram', 'LinkedIn', 'Google', 'Facebook',
+                        'YouTube', 'TikTok', 'Snapchat', 'Telegram', 'Reddit',
+                        'Discord', 'Paste Sites']
+            # Check if we have usernames for these platforms
+            usernames = entities_by_type.get('username', [])
+            for platform in platforms:
+                for username in usernames:
+                    if isinstance(username, dict):
+                        name = username.get('name', '')
+                        if platform.lower() in name.lower():
+                            items.append(platform)
+                            break
+                if not items or platform not in items:
+                    items.append(platform)
+
+        elif category == 'emails':
+            emails = entities_by_type.get('email', [])
+            for email in emails[:8]:
+                if isinstance(email, dict):
+                    items.append(email.get('name', 'email@domain.com'))
+                else:
+                    items.append(str(email))
+
+        elif category == 'phone_numbers':
+            phones = entities_by_type.get('phone', [])
+            icons = list(self.PHONE_ICONS.values())
+            for i, phone in enumerate(phones[:8]):
+                icon = icons[i % len(icons)]
+                if isinstance(phone, dict):
+                    number = phone.get('name', '(303) 456-7890')
+                else:
+                    number = str(phone)
+                items.append(f"{icon} {number}")
+
+        elif category == 'usernames':
+            items = ['Usernames', 'Handles', 'Forum Aliases', 'Account Identifiers']
+
+        elif category == 'bio_data':
+            items = ['Full Name', 'Alias', 'DPOB', 'Passport', 'National ID',
+                    'Marital Status', 'Languages', 'Biometric (fingerprint, DNA)',
+                    'Military Service']
+
+        elif category == 'profession':
+            items = ['Businesses', 'Employment', 'Education', 'Skills']
+
+        elif category == 'breach_data':
+            items = ['Passwords', 'Usernames', 'IPs', 'Forums', 'Breach Event']
+
+        elif category == 'vehicles':
+            items = ['Personal', 'Stolen', 'Borrowed', 'Multiple Drivers']
+
+        elif category == 'accomplices':
+            items = ['Accomplice1', 'Accomplice2', 'Accomplice3', 'Accomplice4']
+
+        elif category == 'contacts':
+            items = ['Name/Identifier1', 'Name/Identifier2', 'Name/Identifier3',
+                    'Name/Identifier4', 'Name/Identifier5', 'Name/Identifier6',
+                    'Name/Identifier7', 'Name/Identifier8']
+
+        elif category == 'leads':
+            items = ['Lead1', 'Lead2', 'Lead3', 'Lead4', 'Lead5', 'Lead6']
+
+        elif category == 'relatives':
+            items = ['Spouse/Significant Other', 'Children', 'Parents', 'Siblings',
+                    'Key Extended Family']
+
+        elif category == 'locations':
+            locations = entities_by_type.get('location', [])
+            items = ['City, Country', 'Neighborhood', 'Address', 'Obscure Reference']
+            for loc in locations[:4]:
+                if isinstance(loc, dict):
+                    name = loc.get('name', '')
+                    if name and name not in items:
+                        items.append(name)
+
+        elif category == 'images':
+            items = ['Passport', 'Social Media', 'Surface or Dark Web']
+
+        elif category == 'digital_footprint':
+            items = ['IPs', 'Geo Metadata', 'Device/Network Identifiers',
+                    'Online Behavior Patterns']
+
+        return items
+
+    def generate_investigation_overview(self, investigation_data: Dict) -> str:
         """
-        Generate investigation timeline visualization
+        Generate investigation overview in hub-and-spoke format
 
         Args:
             investigation_data: Investigation data
@@ -363,94 +458,78 @@ class ObsidianCanvasGenerator:
         Returns:
             Canvas JSON string
         """
+        # Use the person investigation format as default overview
+        subject_name = investigation_data.get('objective', 'Investigation')[:50]
+        return self.generate_person_investigation_canvas(investigation_data, subject_name)
+
+    def generate_entity_map(self, investigation_data: Dict, layout: str = 'radial') -> str:
+        """Generate entity relationship map (keeping existing implementation for compatibility)"""
+        # For now, use the new person investigation format
+        return self.generate_person_investigation_canvas(investigation_data, "Entity Network")
+
+    def generate_timeline_canvas(self, investigation_data: Dict) -> str:
+        """Generate timeline (keep existing vertical implementation)"""
         self.nodes = []
         self.edges = []
 
-        # Extract timeline events
         analysis = investigation_data.get('analysis', {})
         timeline = analysis.get('timeline', [])
 
-        if not timeline:
-            # No timeline data
-            node = self.create_text_node(
-                "No timeline data available",
-                100, 100,
-                color="#BDBDBD"
-            )
-            self.nodes.append(node)
-        else:
-            # Create timeline title
-            title_node = self.create_text_node(
-                f"**Investigation Timeline**\n\n{investigation_data.get('investigation_id', 'N/A')}",
-                0, -200,
-                width=400,
-                height=100,
-                color="#1976D2"
-            )
-            self.nodes.append(title_node)
+        # Create title
+        title_node = self.create_text_node(
+            f"**Investigation Timeline**",
+            -175, -200,
+            width=350, height=80,
+            color=self.COLORS['timeline']
+        )
+        self.nodes.append(title_node)
 
-            # Create timeline events (vertical layout)
-            spacing_y = 200
+        if timeline:
             prev_node = None
-
-            for i, event in enumerate(timeline):
+            for i, event in enumerate(timeline[:15]):
                 if isinstance(event, dict):
                     date = event.get('date', 'Unknown date')
-                    description = event.get('description', 'No description')
-                    event_type = event.get('type', 'event')
+                    description = event.get('description', '')
                 else:
-                    date = "Unknown"
+                    date = "Event"
                     description = str(event)
-                    event_type = "event"
 
-                # Create event node
-                event_text = f"**{date}**\n\n{description}"
-                y_pos = i * spacing_y
+                event_text = f"**{date}**\n\n{description[:100]}"
+                y_pos = i * 180
 
                 node = self.create_text_node(
                     event_text,
-                    0, y_pos,
-                    width=350,
-                    height=150,
-                    color=self.ENTITY_COLORS.get(event_type, "#607D8B")
+                    -175, y_pos,
+                    width=350, height=150,
+                    color=self.COLORS['timeline']
                 )
                 self.nodes.append(node)
 
-                # Connect to previous event
                 if prev_node:
                     edge = self.create_edge(
                         prev_node['id'],
                         node['id'],
-                        color="#424242"
+                        from_side="bottom",
+                        to_side="top",
+                        color=self.COLORS['timeline']
                     )
                     self.edges.append(edge)
                 else:
-                    # Connect first event to title
                     edge = self.create_edge(
                         title_node['id'],
-                        node['id']
+                        node['id'],
+                        from_side="bottom",
+                        to_side="top"
                     )
                     self.edges.append(edge)
 
                 prev_node = node
 
-        canvas = {
-            "nodes": self.nodes,
-            "edges": self.edges
-        }
-
+        canvas = {"nodes": self.nodes, "edges": self.edges}
         return json.dumps(canvas, indent=2)
 
     def generate_findings_canvas(self, investigation_data: Dict) -> str:
-        """
-        Generate findings hierarchy visualization
-
-        Args:
-            investigation_data: Investigation data
-
-        Returns:
-            Canvas JSON string
-        """
+        """Generate findings hierarchy (keep existing grouped implementation)"""
         self.nodes = []
         self.edges = []
 
@@ -459,26 +538,15 @@ class ObsidianCanvasGenerator:
 
         # Create investigation node
         inv_node = self.create_text_node(
-            f"**Investigation Findings**\n\n{investigation_data.get('objective', '')}",
-            0, -300,
-            width=400,
-            height=150,
-            color="#1976D2"
+            f"**Investigation Findings**",
+            -175, -300,
+            width=350, height=100,
+            color=self.COLORS['findings']
         )
         self.nodes.append(inv_node)
 
-        if not key_findings:
-            no_findings_node = self.create_text_node(
-                "No findings available",
-                0, 0,
-                color="#BDBDBD"
-            )
-            self.nodes.append(no_findings_node)
-
-            edge = self.create_edge(inv_node['id'], no_findings_node['id'])
-            self.edges.append(edge)
-        else:
-            # Group findings by confidence
+        if key_findings:
+            # Group by confidence
             findings_by_confidence = {}
             for finding in key_findings:
                 if isinstance(finding, dict):
@@ -487,165 +555,46 @@ class ObsidianCanvasGenerator:
                         findings_by_confidence[confidence] = []
                     findings_by_confidence[confidence].append(finding)
 
-            # Create confidence groups
-            group_spacing = 500
-            group_x = -len(findings_by_confidence) * group_spacing // 2
+            # Create groups
+            group_x = -len(findings_by_confidence) * 250
+            for conf_level, findings in findings_by_confidence.items():
+                group_height = 100 + len(findings) * 130
 
-            for confidence_level, findings in findings_by_confidence.items():
-                # Create group node
                 group_node = self.create_group_node(
-                    f"{confidence_level.upper()} Confidence",
+                    f"{conf_level.upper()} Confidence",
                     group_x, 0,
-                    width=450,
-                    height=200 + len(findings) * 100,
-                    color=self.CONFIDENCE_COLORS.get(confidence_level, "#9E9E9E")
+                    width=450, height=group_height,
+                    color=self.COLORS.get(conf_level, "#9E9E9E")
                 )
                 self.nodes.append(group_node)
 
-                # Connect group to investigation
                 edge = self.create_edge(
                     inv_node['id'],
                     group_node['id'],
+                    from_side="bottom",
+                    to_side="top",
                     label=f"{len(findings)} findings"
                 )
                 self.edges.append(edge)
 
-                # Create finding nodes within group
-                for i, finding in enumerate(findings):
-                    description = finding.get('description', str(finding))[:200]
-                    significance = finding.get('significance', 'unknown')
-
-                    finding_text = f"**Finding**\n\n{description}\n\nSignificance: {significance}"
-
+                # Add findings
+                for i, finding in enumerate(findings[:8]):
+                    desc = finding.get('description', str(finding))[:150]
                     finding_node = self.create_text_node(
-                        finding_text,
+                        f"**Finding**\n\n{desc}",
                         group_x + 20,
-                        20 + i * 180,
-                        width=400,
-                        height=150,
-                        color=self.CONFIDENCE_COLORS.get(confidence_level, "#9E9E9E")
+                        20 + i * 130,
+                        width=400, height=110
                     )
                     self.nodes.append(finding_node)
 
-                group_x += group_spacing
+                group_x += 500
 
-        canvas = {
-            "nodes": self.nodes,
-            "edges": self.edges
-        }
-
-        return json.dumps(canvas, indent=2)
-
-    def generate_investigation_overview(self, investigation_data: Dict) -> str:
-        """
-        Generate complete investigation overview canvas
-
-        Args:
-            investigation_data: Investigation data
-
-        Returns:
-            Canvas JSON string
-        """
-        self.nodes = []
-        self.edges = []
-
-        # Central investigation node
-        inv_id = investigation_data.get('investigation_id', 'Unknown')
-        objective = investigation_data.get('objective', 'No objective')[:150]
-
-        central_node = self.create_text_node(
-            f"**OSINT Investigation**\n\n{inv_id}\n\n{objective}",
-            0, 0,
-            width=400,
-            height=250,
-            color="#0D47A1"
-        )
-        self.nodes.append(central_node)
-
-        # Create category nodes in radial layout
-        categories = []
-
-        # Findings
-        analysis = investigation_data.get('analysis', {})
-        findings_count = len(analysis.get('key_findings', []))
-        categories.append(('Findings', findings_count, '#4CAF50', -600, -300))
-
-        # Entities
-        processed_data = investigation_data.get('processed_data', {})
-        entities_count = len(processed_data.get('entities', []))
-        categories.append(('Entities', entities_count, '#2196F3', 600, -300))
-
-        # Timeline
-        timeline_count = len(analysis.get('timeline', []))
-        categories.append(('Timeline Events', timeline_count, '#FF9800', -600, 300))
-
-        # Risks
-        risks_count = len(analysis.get('risk_indicators', []))
-        categories.append(('Risk Indicators', risks_count, '#F44336', 600, 300))
-
-        # Recommendations
-        rec_count = len(analysis.get('recommendations', []))
-        categories.append(('Recommendations', rec_count, '#9C27B0', 0, 500))
-
-        # Collection results
-        collection_count = len(investigation_data.get('collection_results', []))
-        categories.append(('Data Sources', collection_count, '#00BCD4', 0, -500))
-
-        # Create category nodes
-        for label, count, color, x, y in categories:
-            node = self.create_text_node(
-                f"**{label}**\n\n{count} items",
-                x, y,
-                width=250,
-                height=120,
-                color=color
-            )
-            self.nodes.append(node)
-
-            edge = self.create_edge(
-                central_node['id'],
-                node['id'],
-                label=str(count)
-            )
-            self.edges.append(edge)
-
-        # Add metadata
-        metadata = investigation_data.get('metadata', {})
-        meta_text = f"**Investigation Metadata**\n\n"
-        meta_text += f"Duration: {metadata.get('duration_seconds', 0):.1f}s\n"
-        meta_text += f"Iterations: {metadata.get('iterations', 0)}\n"
-        meta_text += f"Tools Used: {metadata.get('tools_used', 0)}"
-
-        meta_node = self.create_text_node(
-            meta_text,
-            -900, 0,
-            width=250,
-            height=150,
-            color="#607D8B"
-        )
-        self.nodes.append(meta_node)
-
-        edge = self.create_edge(central_node['id'], meta_node['id'])
-        self.edges.append(edge)
-
-        canvas = {
-            "nodes": self.nodes,
-            "edges": self.edges
-        }
-
+        canvas = {"nodes": self.nodes, "edges": self.edges}
         return json.dumps(canvas, indent=2)
 
     def save_canvas(self, canvas_json: str, filename: str) -> Path:
-        """
-        Save canvas to .canvas file
-
-        Args:
-            canvas_json: Canvas JSON string
-            filename: Filename (without extension)
-
-        Returns:
-            Path to saved file
-        """
+        """Save canvas to .canvas file"""
         filepath = self.output_dir / f"{filename}.canvas"
 
         with open(filepath, 'w', encoding='utf-8') as f:
@@ -655,32 +604,17 @@ class ObsidianCanvasGenerator:
         return filepath
 
     def generate_all_canvases(self, investigation_data: Dict) -> Dict[str, Path]:
-        """
-        Generate all canvas types for an investigation
-
-        Args:
-            investigation_data: Investigation data
-
-        Returns:
-            Dictionary mapping canvas type to file path
-        """
+        """Generate all canvas types"""
         inv_id = investigation_data.get('investigation_id', 'investigation')
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
         canvases = {}
 
-        # Overview
-        overview_json = self.generate_investigation_overview(investigation_data)
-        canvases['overview'] = self.save_canvas(
-            overview_json,
-            f"{inv_id}_{timestamp}_overview"
-        )
-
-        # Entity map
-        entity_json = self.generate_entity_map(investigation_data, layout='radial')
-        canvases['entity_map'] = self.save_canvas(
-            entity_json,
-            f"{inv_id}_{timestamp}_entity_map"
+        # Person investigation format (new)
+        person_json = self.generate_person_investigation_canvas(investigation_data)
+        canvases['person_investigation'] = self.save_canvas(
+            person_json,
+            f"{inv_id}_{timestamp}_person_investigation"
         )
 
         # Timeline
@@ -701,12 +635,7 @@ class ObsidianCanvasGenerator:
 
 
 def create_obsidian_vault_structure(base_path: str = "data/obsidian_vault"):
-    """
-    Create Obsidian vault structure for OSINT investigations
-
-    Args:
-        base_path: Base path for vault
-    """
+    """Create Obsidian vault structure"""
     vault_path = Path(base_path)
     vault_path.mkdir(parents=True, exist_ok=True)
 
@@ -716,11 +645,11 @@ def create_obsidian_vault_structure(base_path: str = "data/obsidian_vault"):
     (vault_path / "Reports").mkdir(exist_ok=True)
     (vault_path / "Canvases").mkdir(exist_ok=True)
 
-    # Create .obsidian folder (required for vault)
+    # Create .obsidian folder
     obsidian_folder = vault_path / ".obsidian"
     obsidian_folder.mkdir(exist_ok=True)
 
-    # Create basic workspace config
+    # Create workspace config
     workspace_config = {
         "main": {
             "id": "osint-vault",
@@ -733,6 +662,4 @@ def create_obsidian_vault_structure(base_path: str = "data/obsidian_vault"):
         json.dump(workspace_config, f, indent=2)
 
     print(f"Obsidian vault created at: {vault_path}")
-    print(f"Open this folder in Obsidian to view your OSINT canvases!")
-
     return vault_path
