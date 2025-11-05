@@ -485,5 +485,104 @@ def save_report(result: dict, format: str, output: Optional[str], classification
         console.print(f"\n[green]Report saved to:[/green] data/reports/")
 
 
+@cli.command()
+@click.argument('investigation_id')
+@click.option('--type', '-t',
+              type=click.Choice(['overview', 'entity_map', 'timeline', 'findings', 'all']),
+              default='all',
+              help='Type of canvas to generate')
+@click.option('--output-dir', '-o', type=click.Path(), help='Output directory for canvases')
+def canvas(investigation_id: str, type: str, output_dir: Optional[str]):
+    """
+    🗺️  Generate Obsidian Canvas mind maps for an investigation
+
+    INVESTIGATION_ID: Investigation ID to visualize
+
+    Example:
+        osint canvas <investigation_id> --type all
+        osint canvas <investigation_id> --type entity_map --output-dir ./obsidian/
+    """
+    async def generate_canvas():
+        console.print(Panel.fit(
+            f"[bold cyan]Generating Obsidian Canvas Mind Maps[/bold cyan]\n\n"
+            f"[yellow]Investigation:[/yellow] {investigation_id}\n"
+            f"[yellow]Canvas Type:[/yellow] {type}",
+            title="🗺️ Canvas Generation",
+            border_style="cyan"
+        ))
+
+        # Get investigation data
+        memory = MemoryStore()
+
+        # Export investigation
+        data_str = await memory.export_investigation(investigation_id, format='json')
+        data = json.loads(data_str)
+
+        if not data or 'summary' not in data:
+            console.print(f"[red]Investigation {investigation_id} not found[/red]")
+            return
+
+        # Prepare investigation data
+        investigation_data = {
+            'investigation_id': investigation_id,
+            'objective': data['summary'].get('investigation', {}).get('objective', ''),
+            'analysis': {},
+            'processed_data': {},
+            'collection_results': data.get('actions', []),
+            'metadata': {}
+        }
+
+        # Generate canvas
+        reporter = ReportGenerator(output_dir=output_dir or 'data/reports')
+
+        console.print(f"\n[cyan]Generating {type} canvas...[/cyan]")
+
+        result = reporter.generate_obsidian_canvas(
+            investigation_data,
+            canvas_type=type,
+            save=True
+        )
+
+        if result:
+            console.print(f"\n[green]✓ Canvas generated successfully![/green]")
+            console.print(f"\n[bold]How to view:[/bold]")
+            console.print(f"1. Open Obsidian")
+            console.print(f"2. Open vault at: data/reports/obsidian/")
+            console.print(f"3. Navigate to the .canvas file")
+            console.print(f"4. View your interactive OSINT mind map!")
+        else:
+            console.print(f"\n[red]Failed to generate canvas[/red]")
+
+    asyncio.run(generate_canvas())
+
+
+@cli.command()
+@click.option('--vault-path', '-p', default='data/obsidian_vault', help='Path for Obsidian vault')
+def create_vault(vault_path: str):
+    """
+    📓 Create an Obsidian vault for OSINT investigations
+
+    Example:
+        osint create-vault --vault-path ./my_osint_vault
+    """
+    from src.reporters.obsidian_canvas import create_obsidian_vault_structure
+
+    console.print(f"[cyan]Creating Obsidian vault...[/cyan]\n")
+
+    vault = create_obsidian_vault_structure(vault_path)
+
+    console.print(Panel.fit(
+        f"[bold green]✓ Obsidian Vault Created[/bold green]\n\n"
+        f"[yellow]Path:[/yellow] {vault}\n\n"
+        f"[bold]Next steps:[/bold]\n"
+        f"1. Open Obsidian\n"
+        f"2. Click 'Open folder as vault'\n"
+        f"3. Select: {vault}\n"
+        f"4. Your OSINT canvases will appear in the Canvases folder!",
+        title="📓 Vault Ready",
+        border_style="green"
+    ))
+
+
 if __name__ == '__main__':
     cli()

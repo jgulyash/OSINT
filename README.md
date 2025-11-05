@@ -43,8 +43,15 @@ This is a **fully autonomous AI-powered OSINT (Open Source Intelligence) agent**
 2. **Collection**: Automated multi-source data gathering
 3. **Processing**: AI-powered data normalization and structuring
 4. **Analysis**: Deep intelligence analysis with confidence scoring
-5. **Dissemination**: Multi-format report generation (Markdown, HTML, JSON, CSV)
+5. **Dissemination**: Multi-format report generation (Markdown, HTML, JSON, CSV, **Obsidian Canvas**)
 6. **Feedback**: Self-evaluation and quality assessment
+
+### 🗺️ Obsidian Canvas Mind Maps
+- **Interactive Visualizations**: Generate beautiful mind maps from investigations
+- **4 Canvas Types**: Overview, Entity Map, Timeline, Findings Hierarchy
+- **Auto-Generated**: Canvases created automatically alongside reports
+- **Obsidian Integration**: Open directly in Obsidian for interactive exploration
+- **[Full Guide](OBSIDIAN_INTEGRATION.md)**
 
 ### 🎯 Advanced Capabilities
 - **Entity Extraction**: Automatically identify people, organizations, domains, IPs
@@ -142,6 +149,33 @@ python -m src.cli campaign github.com gitlab.com bitbucket.org \
   --objective-template "Investigate {target} for security issues" \
   --parallel \
   --output-dir ./campaign_results
+```
+
+### Example 4: Obsidian Canvas Mind Maps
+
+```bash
+# Generate interactive mind maps from investigation
+python -m src.cli canvas <investigation_id> --type all
+
+# Create Obsidian vault structure
+python -m src.cli create-vault
+
+# Run example with automatic canvas generation
+python examples/obsidian_canvas_generation.py
+```
+
+```python
+# Python: Generate canvases alongside reports
+from src.reporters.report_generator import ReportGenerator
+
+reporter = ReportGenerator()
+
+# Generate all canvas types
+reporter.generate_obsidian_canvas(
+    investigation_data,
+    canvas_type='all',  # overview, entity_map, timeline, findings, or all
+    save=True
+)
 ```
 
 ## 🏗️ Architecture
@@ -347,6 +381,7 @@ workflows:
 ## 📚 Documentation
 
 - **[Usage Guide](USAGE_GUIDE.md)** - Comprehensive usage documentation
+- **[Obsidian Integration](OBSIDIAN_INTEGRATION.md)** - Mind map and canvas generation guide
 - **[Examples](examples/)** - Working code examples
 - **[Configuration](config/config.yaml)** - Configuration options
 

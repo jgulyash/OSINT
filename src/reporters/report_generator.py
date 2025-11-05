@@ -7,12 +7,20 @@ Supports:
 - JSON
 - PDF (requires additional dependencies)
 - CSV (for data exports)
+- Obsidian Canvas (mind maps and knowledge graphs)
 """
 
 import json
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from pathlib import Path
+
+# Import Obsidian Canvas generator
+try:
+    from src.reporters.obsidian_canvas import ObsidianCanvasGenerator
+    OBSIDIAN_AVAILABLE = True
+except ImportError:
+    OBSIDIAN_AVAILABLE = False
 
 
 class ReportGenerator:
@@ -586,3 +594,65 @@ class ReportGenerator:
             return 'medium'
         else:
             return 'low'
+
+    def generate_obsidian_canvas(
+        self,
+        data: Dict,
+        canvas_type: str = 'overview',
+        save: bool = True
+    ) -> Optional[str]:
+        """
+        Generate Obsidian Canvas mind map
+
+        Args:
+            data: Investigation data
+            canvas_type: Type of canvas (overview, entity_map, timeline, findings, all)
+            save: Save canvas to file
+
+        Returns:
+            Canvas JSON string or None if Obsidian not available
+        """
+        if not OBSIDIAN_AVAILABLE:
+            print("Warning: Obsidian Canvas generator not available")
+            return None
+
+        canvas_gen = ObsidianCanvasGenerator()
+
+        if canvas_type == 'overview':
+            canvas_json = canvas_gen.generate_investigation_overview(data)
+            if save:
+                inv_id = data.get('investigation_id', 'investigation')
+                canvas_gen.save_canvas(canvas_json, f"{inv_id}_overview")
+            return canvas_json
+
+        elif canvas_type == 'entity_map':
+            canvas_json = canvas_gen.generate_entity_map(data, layout='radial')
+            if save:
+                inv_id = data.get('investigation_id', 'investigation')
+                canvas_gen.save_canvas(canvas_json, f"{inv_id}_entity_map")
+            return canvas_json
+
+        elif canvas_type == 'timeline':
+            canvas_json = canvas_gen.generate_timeline_canvas(data)
+            if save:
+                inv_id = data.get('investigation_id', 'investigation')
+                canvas_gen.save_canvas(canvas_json, f"{inv_id}_timeline")
+            return canvas_json
+
+        elif canvas_type == 'findings':
+            canvas_json = canvas_gen.generate_findings_canvas(data)
+            if save:
+                inv_id = data.get('investigation_id', 'investigation')
+                canvas_gen.save_canvas(canvas_json, f"{inv_id}_findings")
+            return canvas_json
+
+        elif canvas_type == 'all':
+            canvases = canvas_gen.generate_all_canvases(data)
+            print(f"Generated {len(canvases)} canvas files:")
+            for canvas_type, filepath in canvases.items():
+                print(f"  - {canvas_type}: {filepath}")
+            return json.dumps({'canvases': [str(p) for p in canvases.values()]})
+
+        else:
+            print(f"Unknown canvas type: {canvas_type}")
+            return None
