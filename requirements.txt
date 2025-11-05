@@ -1,0 +1,67 @@
+# Core AI/LLM Libraries
+openai>=1.0.0
+anthropic>=0.18.0
+langchain>=0.1.0
+langchain-community>=0.0.20
+
+# Async and Network
+aiohttp>=3.9.0
+asyncio
+httpx>=0.25.0
+requests>=2.31.0
+
+# Web Scraping and Parsing
+beautifulsoup4>=4.12.0
+lxml>=4.9.3
+html5lib>=1.1
+
+# DNS and Network Tools
+python-whois>=0.8.0
+dnspython>=2.4.0
+ipwhois>=1.2.0
+
+# Data Processing
+pandas>=2.1.0
+numpy>=1.24.0
+
+# Database
+sqlite3
+
+# Security and Hashing
+cryptography>=41.0.0
+
+# Scheduling (for automated workflows)
+schedule>=1.2.0
+APScheduler>=3.10.0
+
+# Environment and Configuration
+python-dotenv>=1.0.0
+pyyaml>=6.0
+
+# CLI Interface
+click>=8.1.0
+rich>=13.0.0
+colorama>=0.4.6
+
+# Logging
+loguru>=0.7.0
+
+# Optional: Enhanced OSINT Tools
+# shodan>=1.30.0  # Requires API key
+# censys>=2.2.0  # Requires API key
+# tweepy>=4.14.0  # For Twitter/X OSINT (requires API key)
+
+# Optional: Report Generation
+# markdown>=3.5.0
+# jinja2>=3.1.0
+# weasyprint>=60.0  # For PDF generation
+
+# Optional: Data Visualization
+# matplotlib>=3.8.0
+# networkx>=3.2.0  # For network graph analysis
+
+# Development and Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+flake8>=6.1.0

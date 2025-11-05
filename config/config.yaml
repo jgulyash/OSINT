@@ -1,0 +1,215 @@
+# OSINT Agent Configuration
+
+# Agent Settings
+agent:
+  name: "OSINT Intelligence Agent"
+  version: "1.0.0"
+  max_iterations: 15
+  min_confidence: 0.6
+  default_timeout: 30
+
+# LLM Configuration
+llm:
+  provider: "openai"  # openai, anthropic
+  temperature: 0.7
+  max_tokens: 4000
+
+  # Model selection
+  models:
+    openai: "gpt-4-turbo-preview"
+    anthropic: "claude-3-opus-20240229"
+
+# OSINT Tools Configuration
+tools:
+  # Enable/disable specific tools
+  enabled:
+    - web_search
+    - domain_lookup
+    - fetch_webpage
+    - subdomain_enum
+    - ssl_certificate_info
+    - social_media_search
+    - email_investigation
+    - username_search
+    - ip_lookup
+    - phone_number_lookup
+    - analyze_url_patterns
+    - hash_file_content
+    - check_reputation
+    - extract_iocs
+
+  # Tool-specific settings
+  web_search:
+    default_results: 10
+    timeout: 15
+
+  subdomain_enum:
+    max_subdomains: 50
+    timeout: 10
+
+  social_media:
+    platforms:
+      - github
+      - twitter
+      - linkedin
+      - reddit
+    rate_limit_delay: 0.5  # seconds between requests
+
+# Memory and Storage
+storage:
+  database_path: "data/osint_memory.db"
+  reports_dir: "data/reports"
+  investigations_dir: "data/investigations"
+  cache_dir: "data/cache"
+  cache_ttl: 3600  # seconds
+
+# Workflow Configuration
+workflows:
+  max_parallel: 3
+  default_check_interval: 300  # seconds
+  enable_scheduling: false
+
+# Alert Configuration
+alerts:
+  enabled: true
+  severity_levels:
+    - critical
+    - high
+    - medium
+    - low
+
+  # Alert channels
+  channels:
+    console: true
+    email: false
+    slack: false
+    webhook: false
+
+  # Alert conditions
+  conditions:
+    finding_count_threshold: 5
+    high_confidence_threshold: 0.8
+    risk_indicator_trigger: true
+
+# Report Configuration
+reports:
+  default_format: "markdown"  # markdown, html, json, csv
+  default_classification: "UNCLASSIFIED"
+  include_raw_data: false
+  include_metadata: true
+
+  formats:
+    markdown:
+      enabled: true
+      template: null
+    html:
+      enabled: true
+      template: null
+    json:
+      enabled: true
+      pretty_print: true
+    csv:
+      enabled: true
+      delimiter: ","
+    pdf:
+      enabled: false  # Requires additional dependencies
+
+# Intelligence Lifecycle Phases
+lifecycle:
+  phases:
+    planning:
+      enabled: true
+      min_actions: 5
+      max_actions: 12
+
+    collection:
+      enabled: true
+      parallel_execution: false
+      retry_on_failure: true
+      max_retries: 2
+
+    processing:
+      enabled: true
+      deduplication: true
+      normalization: true
+
+    analysis:
+      enabled: true
+      confidence_scoring: true
+      relationship_extraction: true
+
+    dissemination:
+      enabled: true
+      auto_generate_report: true
+
+    feedback:
+      enabled: true
+      auto_evaluate: true
+
+# Rate Limiting
+rate_limiting:
+  enabled: true
+  max_requests_per_minute: 60
+  burst_limit: 10
+
+# Security and Privacy
+security:
+  use_proxy: false
+  proxy_url: null
+  verify_ssl: true
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+  # Sensitive data handling
+  redact_emails: false
+  redact_phone_numbers: false
+  redact_api_keys: true
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "data/osint_agent.log"
+  rotation: "10 MB"
+  retention: "30 days"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+  # Log specific components
+  components:
+    agent: "INFO"
+    tools: "INFO"
+    memory: "WARNING"
+    workflows: "INFO"
+    reporters: "INFO"
+
+# Performance
+performance:
+  enable_caching: true
+  cache_ttl: 3600
+  max_concurrent_requests: 5
+  request_timeout: 30
+
+# Development
+development:
+  debug_mode: false
+  verbose_output: true
+  save_intermediate_results: false
+
+# Features
+features:
+  entity_extraction: true
+  relationship_mapping: true
+  timeline_construction: true
+  network_analysis: true
+  threat_intelligence: true
+  continuous_monitoring: true
+
+# Integrations
+integrations:
+  # External services
+  virustotal:
+    enabled: false
+  shodan:
+    enabled: false
+  censys:
+    enabled: false
+  securitytrails:
+    enabled: false
