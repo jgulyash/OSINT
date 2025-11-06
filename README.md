@@ -1,13 +1,13 @@
-# 🤖 AI-Powered Autonomous OSINT Agent
+# 🤖 OSINT Agent
 
-**Fully automated, AI-driven open source intelligence gathering and analysis system.**
+**AI-driven open source intelligence gathering and analysis system.**
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## 🌟 Overview
 
-This is a **fully autonomous AI-powered OSINT (Open Source Intelligence) agent** that handles the complete intelligence lifecycle with **zero manual intervention**. The AI makes all decisions about:
+This is a **autonomous AI-powered OSINT (Open Source Intelligence) agent** that handles the complete intelligence lifecycle with **zero manual intervention**. The AI makes all decisions about:
 
 - 📋 **Planning**: What to investigate and how
 - 🔍 **Collection**: Which sources to query and when
